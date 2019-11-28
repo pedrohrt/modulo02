@@ -7,7 +7,7 @@ import Appointment from '../models/Appointment';
 import Notification from '../schemas/Notification';
 
 import CancellationMail from '../jobs/CancelletationMail';
-import Queue from '../../lib/Queue'; 
+import Queue from '../../lib/Queue';
 
 /* -------------------------------------------------- */
 class AppointmentController{
@@ -18,7 +18,7 @@ class AppointmentController{
     const appointments = await Appointment.findAll({
       where: {user_id: req.userId, canceled_at: null},
       order: ['date'],
-      attributes: ['id', 'date'],
+      attributes: ['id', 'date', 'past', 'cancelable'],
       limit: 20,
       offset: (page - 1) * 20,
       include: [
@@ -59,7 +59,7 @@ class AppointmentController{
       return res.status(401).json({error: 'You can only create appointments with provider'})
     }
 
-    const hourStart = startOfHour(parseISO(date)); 
+    const hourStart = startOfHour(parseISO(date));
 
     if(isBefore(hourStart, new Date())){
       return res.status(400).json({error: 'Past dates are not permited'})
@@ -84,7 +84,7 @@ class AppointmentController{
     });
 
     const user = await User.findByPk(req.userId);
-    
+
     const formattedDate = format(
       hourStart,
       "'dia' dd 'de' MMMM', às' H:mm'h'",
@@ -132,7 +132,7 @@ class AppointmentController{
     await appointment.save();
 
     await Queue.add(CancellationMail.key, {
-      appointment,      
+      appointment,
     });
 
     return res.json(appointment);
